@@ -15,5 +15,5 @@ struct  parfor_work_item {
 
 typedef struct parfor_work_item parfor_work_item_t;
 
-char* serialize_parfor(parfor_work_item_t *pfor, int num, int *buf_size);
-parfor_work_item_t* deserialize_parfor(char *buf, int *num);
+char* kgomp_serialize_parfor(parfor_work_item_t *pfor, int num, int *buf_size);
+parfor_work_item_t* kgomp_deserialize_parfor(char *buf, int *num);

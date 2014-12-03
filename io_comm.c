@@ -1,15 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <malloc.h>
-#include <sys/wait.h>
-#include <errno.h>
-
-#include <mppa_bsp.h>
-#include <mppaipc.h>
-#include <mppa/osconfig.h>
+#include "io_comm.h"
 
 
-int mppa_comm_init(int nb_clusters, int nb_threads, int *cc_to_io_fd, int *io_to_cc_fd){
+int mppa_io_comm_init(int nb_clusters, char** io_to_cc_path, char** cc_to_io_path,
+		int *io_to_cc_fd, int *cc_to_io_fd){
 
 	int i = 0, j =0, k = 0;
 
@@ -18,8 +11,6 @@ int mppa_comm_init(int nb_clusters, int nb_threads, int *cc_to_io_fd, int *io_to
 	int io_cnoc_rx_port = 3;
 	int cluster_cnoc_rx_port = 3;
 
-	char io_to_cc_path[nb_clusters][128];
-	char cc_to_io_path[nb_clusters][128];
 	for(k=0;k<nb_clusters;k++){
 			snprintf(io_to_cc_path[k], 128, "/mppa/portal/%d:%d", k, cluster_dnoc_rx_port++);
 			snprintf(cc_to_io_path[k], 128, "/mppa/portal/%d:%d", mppa_getpid() + k%BSP_NB_DMA_IO, io_dnoc_rx_port++);
@@ -80,7 +71,7 @@ int mppa_comm_init(int nb_clusters, int nb_threads, int *cc_to_io_fd, int *io_to
 	return 1;
 }
 
-int mppa_comm_close(int nb_clusters, int *io_to_cc_fd, int *cc_to_io_fd){
+int mppa_io_comm_close(int nb_clusters, int *io_to_cc_fd, int *cc_to_io_fd){
 
 	int rank;
 	//Opening portal from io to all compute clusters and vice versa
@@ -91,7 +82,7 @@ int mppa_comm_close(int nb_clusters, int *io_to_cc_fd, int *cc_to_io_fd){
 }
 
 
-int mppa_comm_async_send(mppa_aiocb_t *io_to_cc_aiocb, int io_to_cc_fd, void *buf, int buf_size){
+int mppa_io_comm_async_send(mppa_aiocb_t *io_to_cc_aiocb, int io_to_cc_fd, void *buf, int buf_size){
 
 	mppa_aiocb_ctor(io_to_cc_aiocb, io_to_cc_fd, buf, buf_size);
 	mppa_aiocb_set_pwrite(io_to_cc_aiocb, buf, buf_size, 0);
@@ -99,14 +90,14 @@ int mppa_comm_async_send(mppa_aiocb_t *io_to_cc_aiocb, int io_to_cc_fd, void *bu
 	assert(status == 0);
 }
 
-int mppa_comm_async_wait(mppa_aiocb_t cc_to_io_aiocb, int buf_size){
+int mppa_io_comm_async_wait(mppa_aiocb_t cc_to_io_aiocb, int buf_size){
 
 	int status = mppa_aio_wait(&cc_to_io_aiocb);
 	assert(status == buf_size);
 	return 1;
 }
 
-int mppa_comm_async_receive(mppa_aiocb_t *cc_to_io_aiocb, int cc_to_io_fd, void *buf, int buf_size){
+int mppa_io_comm_async_receive(mppa_aiocb_t *cc_to_io_aiocb, int cc_to_io_fd, void *buf, int buf_size){
 
 	mppa_aiocb_ctor(cc_to_io_aiocb, cc_to_io_fd, buf, buf_size);
 	mppa_aiocb_set_trigger(cc_to_io_aiocb, 1);
@@ -115,21 +106,21 @@ int mppa_comm_async_receive(mppa_aiocb_t *cc_to_io_aiocb, int cc_to_io_fd, void 
 	return 1;
 }
 
-int mppa_comm_send(int io_to_cc_fd, void *buf, int buf_size){
+int mppa_io_comm_send(int io_to_cc_fd, void *buf, int buf_size){
 
 	mppa_aiocb_t io_to_cc_aiocb;
-	mppa_comm_async_send(&io_to_cc_aiocb, io_to_cc_fd, buf, buf_size);
-	mppa_comm_async_wait(io_to_cc_aiocb, buf_size);
+	mppa_io_comm_async_send(&io_to_cc_aiocb, io_to_cc_fd, buf, buf_size);
+	mppa_io_comm_async_wait(io_to_cc_aiocb, buf_size);
 
 	return 1;
 }
 
 
-int mppa_comm_receive(int cc_to_io_fd, void *buf, int buf_size){
+int mppa_io_comm_receive(int cc_to_io_fd, void *buf, int buf_size){
 
 	mppa_aiocb_t cc_to_io_aiocb;
-	mppa_comm_async_receive(&cc_to_io_aiocb, cc_to_io_fd, buf, buf_size);
-	mppa_comm_async_wait(cc_to_io_aiocb, buf_size);
+	mppa_io_comm_async_receive(&cc_to_io_aiocb, cc_to_io_fd, buf, buf_size);
+	mppa_io_comm_async_wait(cc_to_io_aiocb, buf_size);
 
 	return 1;
 }

@@ -10,17 +10,15 @@
 
 // Initialization of the barrier (must be called before mppa_spawn)
 static int
-mppa_init_barrier( int *sync_io_to_cluster_fd,
-		int *sync_clusters_to_io_fd, int nb_clusters)
+mppa_io_init_barrier( char *sync_io_to_cc_path, int *sync_io_to_cluster_fd,
+		char *sync_cc_to_io_path , int *sync_clusters_to_io_fd, int nb_clusters)
 {
 
 	int cluster_dnoc_rx_port = 1;
 	int io_cnoc_rx_port = 1;
 	int cluster_cnoc_rx_port = 1;
 
-	char sync_io_to_cc_path[128];
 	snprintf(sync_io_to_cc_path, 128, "/mppa/sync/[0..%lu]:%d", nb_clusters - 1, cluster_cnoc_rx_port++);
-	char sync_cc_to_io_path[128];
 	snprintf(sync_cc_to_io_path, 128, "/mppa/sync/%d:%d", mppa_getpid(), io_cnoc_rx_port++);
 
 	// Open IO to Clusters sync connector
@@ -56,7 +54,7 @@ mppa_init_barrier( int *sync_io_to_cluster_fd,
 
 // Barrier between IO Cluster and all Clusters
 static int
-mppa_barrier(int sync_io_to_cluster_fd, int sync_clusters_to_io_fd)
+mppa_io_barrier(int sync_io_to_cluster_fd, int sync_clusters_to_io_fd)
 {
 	DMSG("[Cluster I/O] mppa_barrier...");
 
@@ -78,7 +76,7 @@ mppa_barrier(int sync_io_to_cluster_fd, int sync_clusters_to_io_fd)
 
 // Close barrier connectors
 static void
-mppa_close_barrier(int sync_io_to_cluster_fd, int sync_clusters_to_io_fd)
+mppa_io_close_barrier(int sync_io_to_cluster_fd, int sync_clusters_to_io_fd)
 {
 	mppa_close(sync_clusters_to_io_fd);
 	mppa_close(sync_io_to_cluster_fd);

@@ -7,7 +7,7 @@
 #include "serialize_parfor.h"
 
 
-char* serialize_parfor(parfor_work_item_t *pfor, int num, int *buf_size){
+char* kgomp_serialize_parfor(parfor_work_item_t *pfor, int num, int *buf_size){
 
 	//size of parfor struct and size of buf_size
 	int total_size = sizeof(parfor_work_item_t) * num + sizeof(int);
@@ -25,7 +25,7 @@ char* serialize_parfor(parfor_work_item_t *pfor, int num, int *buf_size){
 	return buf;
 }
 
-parfor_work_item_t* deserialize_parfor(char *buf, int *num){
+parfor_work_item_t* kgomp_deserialize_parfor(char *buf, int *num){
 
 	assert(buf != NULL);
 
