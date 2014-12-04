@@ -36,7 +36,7 @@ parfor_work_item_t* kgomp_deserialize_parfor(char *buf, int *num){
 
 	assert(total_num >0);
 	int size = sizeof(parfor_work_item_t) * total_num;
-	parfor_work_item_t *pfor = (parfor_work_item_t)malloc(size);
+	parfor_work_item_t *pfor = (parfor_work_item_t*)malloc(size);
 	memcpy(pfor, buf, size);
 
 	*num = total_num;

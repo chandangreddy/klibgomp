@@ -1,7 +1,7 @@
 #include "io_sync.h"
 
 // Initialization of the barrier (must be called before mppa_spawn)
-static int
+int
 mppa_io_init_barrier( char *sync_io_to_cc_path, int *sync_io_to_cluster_fd,
 		char *sync_cc_to_io_path , int *sync_clusters_to_io_fd, int nb_clusters)
 {
@@ -45,7 +45,7 @@ mppa_io_init_barrier( char *sync_io_to_cc_path, int *sync_io_to_cluster_fd,
 }
 
 // Barrier between IO Cluster and all Clusters
-static int
+int
 mppa_io_barrier(int sync_io_to_cluster_fd, int sync_clusters_to_io_fd)
 {
 	DMSG("[Cluster I/O] mppa_barrier...");
@@ -67,7 +67,7 @@ mppa_io_barrier(int sync_io_to_cluster_fd, int sync_clusters_to_io_fd)
 }
 
 // Close barrier connectors
-static void
+void
 mppa_io_close_barrier(int sync_io_to_cluster_fd, int sync_clusters_to_io_fd)
 {
 	mppa_close(sync_clusters_to_io_fd);

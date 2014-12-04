@@ -3,21 +3,22 @@
 int mppa_cc_comm_init(char *io_to_cc_path, char *cc_to_io_path, int *cc_to_io_fd, int *io_to_cc_fd){
 
 
-		if((io_to_cc_fd = mppa_open(io_to_cc_path, O_RDONLY)) < 0) {
+		if((*io_to_cc_fd = mppa_open(io_to_cc_path, O_RDONLY)) < 0) {
 			EMSG("Open portal failed for %s\n", io_to_cc_path);
-			mppa_exit(1);
+			return 0;
+
 		}
 
-		if((cc_to_io_fd = mppa_open(cc_to_io_path, O_WRONLY)) < 0) {
+		if((*cc_to_io_fd = mppa_open(cc_to_io_path, O_WRONLY)) < 0) {
 			EMSG("Open portal failed for %s\n", cc_to_io_path);
-			mppa_exit(1);
+			return 0;
 		}
 
 		return 1;
 }
 
 
-void mppa_cc_comm_close(int *cc_to_io_fd, int *io_to_cc_fd){
+void mppa_cc_comm_close(int cc_to_io_fd, int io_to_cc_fd){
 
 	mppa_close(cc_to_io_fd);
 	mppa_close(io_to_cc_fd);

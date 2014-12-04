@@ -16,7 +16,7 @@
 #define BSP_NB_DMA_IO 4
 
 //#include "tuto_db.h"
-#include "libgomp_util.h"
+#include "libkgomp_util.h"
 
 // Number of clusters
 static unsigned long nb_clusters;

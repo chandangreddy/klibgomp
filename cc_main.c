@@ -6,24 +6,44 @@
 
 #include <mppa_bsp.h>
 #include <mppaipc.h>
-#include <mppa/osconfig.h>
 
 #include "libgomp.h"
 #include "cc_sync.h"
 #include "cc_comm.h"
 #include "serialize_parfor.h"
+#include "libkgomp_util.h"
 
-char io_to_cc_path[128];
-char cc_to_io_path[128];
+char *io_to_cc_path;
+char *cc_to_io_path;
 
-char sync_io_to_cc_path[128];
-char sync_cc_to_io_path[128];
+char *sync_io_to_cc_path;
+char *sync_cc_to_io_path;
 
 int io_to_cc_fd;
 int cc_to_io_fd;
 
 int sync_io_to_cc_fd;
 int sync_cc_to_io_fd;
+
+void subfunction (void *data) {
+        printf("thread id = %d\n", mppa_getpid());
+}
+
+void execute_parfor_task(parfor_work_item_t task){
+
+	int i;
+	switch (task.function_id) {
+		case 1:
+			for(i=task.start; i<task.end; i++)
+				subfunction(NULL);
+			break;
+		default:
+			EMSG("Invalid function ID\n");
+			break;
+	}
+
+}
+
 
 int main(int argc, char **argv) {
 
@@ -65,23 +85,4 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-void execute_parfor_task(parfor_work_item_t task){
 
-	assert(task != NULL);
-
-	int i;
-	switch (task->function_id) {
-		case 1:
-			for(i=task->start; i<task->end; i++)
-				subfunction(NULL);
-			break;
-		default:
-			EMSG("Invalid function ID\n");
-			break;
-	}
-
-}
-
-void subfunction (void *data) {
-        printf("thread id = %d\n", mppa_getpid());
-}

@@ -4,7 +4,7 @@
 int mppa_io_comm_init(int nb_clusters, char** io_to_cc_path, char** cc_to_io_path,
 		int *io_to_cc_fd, int *cc_to_io_fd){
 
-	int i = 0, j =0, k = 0;
+	int  k = 0;
 
 	int io_dnoc_rx_port = 10;
 	int cluster_dnoc_rx_port = 3;

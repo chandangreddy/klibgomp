@@ -1,6 +1,9 @@
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
+#include "libkgomp_util.h"
 
 struct  parfor_work_item {
 	//start of parallel loop chunk

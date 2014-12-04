@@ -20,18 +20,18 @@ kgomp_iter_static_all(int *num_items)
 	*num_items = nthreads;
 
 	if (thr->ts.static_trip == -1)
-		return -1;
+		return NULL;
 
 	parfor_work_item_t *work_item = gomp_malloc(nthreads  * sizeof(parfor_work_item_t));
 
 	/* Quick test for degenerate teams and orphaned constructs.  */
 	if (nthreads == 1)
 	{
-        work_item[i].function_id = 1;
+        work_item[0].function_id = 1;
 		work_item[0].start = ws->next;
 		work_item[0].end = ws->end;
 		thr->ts.static_trip = -1;
-		return ws->next == ws->end;
+		return work_item;
 	}
 
 	/* We interpret chunk_size zero as "unspecified", which means that we
@@ -165,12 +165,13 @@ int kgomp_init(int nthreads){
 
 	mppa_io_comm_init(nclusters, io_to_cc_path, cc_to_io_path, io_to_cc_fd, cc_to_io_fd);
 
-	mppa_io_init_barrier(sync_io_to_cc_path, sync_io_to_cc_fd, sync_cc_to_io_path, sync_cc_to_io_fd,
+	mppa_io_init_barrier(sync_io_to_cc_path, &sync_io_to_cc_fd, sync_cc_to_io_path, &sync_cc_to_io_fd,
 			nclusters);
 
 	// Preload Cluster binary to all clusters
 	mppa_pid_t pids[nclusters];
 	unsigned int nodes[nclusters];
+	int i;
 	for (i = 0; i < nclusters; i++) {
 		nodes[i] = i;
 	}
@@ -180,10 +181,10 @@ int kgomp_init(int nthreads){
 		mppa_exit(1);
 	}
 
-	char *nclusters_str[128] = "";
+	char nclusters_str[128] = "\0";
 	sprintf(nclusters_str, "%d", nclusters);
 
-	char *nthreads_str[128] = "";
+	char nthreads_str[128] = "\0";
 	sprintf(nthreads_str, "%d", KGOMP_NUM_THREADS_PER_CLUSTER);
 
 	for (i = 0; i < nclusters; i++) {
@@ -219,7 +220,7 @@ int kgomp_send_workitems( parfor_work_item_t *work_items, int nthreads){
 		num_cluster_items = cluster_items_end - cluster_items_start;
 
 		int buf_size = 0;
-		char *buf = kgomp_serialize_parfor(work_items[cluster_items_start], num_cluster_items, &buf_size);
+		char *buf = kgomp_serialize_parfor(&(work_items[cluster_items_start]), num_cluster_items, &buf_size);
 
 		mppa_io_comm_send(io_to_cc_fd[i], buf, buf_size);
 	}
