@@ -27,6 +27,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include "libgomp.h"
+#include "libkgomp.h"
 
 
 /* Initialize the given work share construct from the given arguments.  */
@@ -444,6 +445,8 @@ gomp_parallel_loop_start (void (*fn) (void *), void *data,
   struct gomp_team *team;
 
   num_threads = gomp_resolve_num_threads (num_threads, 0);
+  kgomp_init(num_threads);
+  num_threads = 1;
   team = gomp_new_team (num_threads);
   gomp_loop_init (&team->work_shares[0], start, end, incr, sched, chunk_size);
   gomp_team_start (fn, data, num_threads, flags, team);

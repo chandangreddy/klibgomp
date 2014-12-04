@@ -4,11 +4,8 @@
 #include <sys/wait.h>
 #include <errno.h>
 
-#include <mppa_bsp.h>
-#include <mppaipc.h>
-#include <mppa/osconfig.h>
-
 #include "libgomp.h"
+#include "libkgomp.h"
 
 void subfunction (void *data)
 {
@@ -22,11 +19,20 @@ void subfunction (void *data)
 	GOMP_loop_end_nowait ();
 }
 
+void subfunction_mod(void *data){
+
+	while(KGOMP_loop_static_next())
+	{
+
+	}
+	GOMP_loop_end_nowait ();
+}
+
 int main(int argc, char **argv) {
 
 	int lb = 0;
 	int ub = 8;
-	GOMP_parallel_loop_static (subfunction, NULL, 0, lb, ub+1, 1, 0, 1);
-	subfunction (NULL);
+	GOMP_parallel_loop_static (subfunction_mod, NULL, 0, lb, ub+1, 1, 0, 1);
+	subfunction_mod(NULL);
 	GOMP_parallel_end ();
 }

@@ -1,8 +1,9 @@
 
 #include "libgomp.h"
-#include <stdlib.h>
+#include "libkgomp.h"
 #include "serialize_parfor.h"
 #include "io_comm.h"
+#include "io_sync.h"
 
 /* This function implements the STATIC scheduling method.  The caller should
    iterate *pstart <= x < *pend.  Return zero if there are more iterations
@@ -26,6 +27,7 @@ kgomp_iter_static_all(int *num_items)
 	/* Quick test for degenerate teams and orphaned constructs.  */
 	if (nthreads == 1)
 	{
+        work_item[i].function_id = 1;
 		work_item[0].start = ws->next;
 		work_item[0].end = ws->end;
 		thr->ts.static_trip = -1;
@@ -52,6 +54,7 @@ kgomp_iter_static_all(int *num_items)
 		//      i = thr->ts.team_id;
 
 		for(i=0;i<nthreads;i++){
+			work_item[i].function_id = 1;
 			/* Compute the "zero-based" start and end points.  That is, as
                  if the loop began at zero and incremented by one.  */
 			q = n / nthreads;
@@ -100,6 +103,9 @@ kgomp_iter_static_all(int *num_items)
 
 
 		for(i=0;i<nthreads;i++){
+
+			work_item[i].function_id = 1;
+
 			/* Initial guess is a C sized chunk positioned nthreads iterations
                  in, offset by our thread number.  */
 			s0 = (thr->ts.static_trip * nthreads + i) * c;
@@ -138,7 +144,7 @@ kgomp_iter_static_all(int *num_items)
 int io_to_cc_fd[KGOMP_MAX_CLUSTERS];
 char io_to_cc_path[KGOMP_MAX_CLUSTERS][128];
 
-int cc_to_fd[KGOMP_MAX_CLUSTERS];
+int cc_to_io_fd[KGOMP_MAX_CLUSTERS];
 char cc_to_io_path[KGOMP_MAX_CLUSTERS][128];
 
 char  sync_io_to_cc_path[128];
@@ -156,14 +162,46 @@ int kgomp_get_num_clusters(int nthreads){
 int kgomp_init(int nthreads){
 
 	int nclusters = kgomp_get_num_clusters(nthreads);
-	mppa_io_comm_init(nclusters, io_to_cc_path, cc_to_io_path, io_to_cc_fd, cc_to_fd);
 
+	mppa_io_comm_init(nclusters, io_to_cc_path, cc_to_io_path, io_to_cc_fd, cc_to_io_fd);
 
+	mppa_io_init_barrier(sync_io_to_cc_path, sync_io_to_cc_fd, sync_cc_to_io_path, sync_cc_to_io_fd,
+			nclusters);
+
+	// Preload Cluster binary to all clusters
+	mppa_pid_t pids[nclusters];
+	unsigned int nodes[nclusters];
+	for (i = 0; i < nclusters; i++) {
+		nodes[i] = i;
+	}
+
+	if (mppa_preload(CLUSTER_BIN_NAME, nclusters, nodes) < 0) {
+		EMSG("preload failed\n");
+		mppa_exit(1);
+	}
+
+	char *nclusters_str[128] = "";
+	sprintf(nclusters_str, "%d", nclusters);
+
+	char *nthreads_str[128] = "";
+	sprintf(nthreads_str, "%d", KGOMP_NUM_THREADS_PER_CLUSTER);
+
+	for (i = 0; i < nclusters; i++) {
+		const char *_argv[] = { CLUSTER_BIN_NAME, io_to_cc_path[i], cc_to_io_path[i],
+				sync_io_to_cc_path, sync_cc_to_io_path,
+				nclusters_str, nthreads_str, 0 };
+
+		if ((pids[i] = mppa_spawn(i, NULL, CLUSTER_BIN_NAME, _argv, NULL)) < 0) {
+			EMSG("spawn cluster %d failed, ret = %d\n", i, pids[i]);
+			mppa_exit(1);
+		}
+	}
+
+	mppa_io_barrier(sync_io_to_cc_fd, sync_cc_to_io_fd);
 }
 
-int kgomp_send_workitems(int *cluster_handles, parfor_work_item_t *work_items, int nthreads){
+int kgomp_send_workitems( parfor_work_item_t *work_items, int nthreads){
 
-	assert(cluster_handles != NULL);
 	assert(work_items != NULL);
 	assert(nthreads > 0);
 
@@ -183,8 +221,16 @@ int kgomp_send_workitems(int *cluster_handles, parfor_work_item_t *work_items, i
 		int buf_size = 0;
 		char *buf = kgomp_serialize_parfor(work_items[cluster_items_start], num_cluster_items, &buf_size);
 
-		mppa_io_comm_send(cluster_handles[i], buf, buf_size);
+		mppa_io_comm_send(io_to_cc_fd[i], buf, buf_size);
 	}
 
 	return 1;
+}
+
+int KGOMP_loop_static_next(){
+	int num_work_items = 0;
+	parfor_work_item_t *work = kgomp_iter_static_all(&num_work_items);
+	kgomp_send_workitems(work, num_work_items);
+
+	return 0;
 }

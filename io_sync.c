@@ -1,12 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <malloc.h>
-#include <sys/wait.h>
-#include <errno.h>
-
-#include <mppa_bsp.h>
-#include <mppaipc.h>
-#include <mppa/osconfig.h>
+#include "io_sync.h"
 
 // Initialization of the barrier (must be called before mppa_spawn)
 static int
